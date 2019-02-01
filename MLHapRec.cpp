@@ -243,8 +243,9 @@ double OptimumFreqs(double timepoint, vector<string> &candidates, vector<double>
 		{
 			if (init_freqs[i] < 1e-11)
 			{
-				//changed this from 1e-11 to 0, so maybe change it back if something went wrong
-				init_freqs[i] = 0;
+				//Warning: if you change this threshold below from 1e-11 to 0, there will be a problem with calculating the gamma function
+				//we assume that the lowest possible frequency is 10^-11
+				init_freqs[i] = 1e-11;
 			}
 		}
 
@@ -471,45 +472,41 @@ int main(int argc, char* argv[])
 		double L_store = -1e7;
 		double L_preserve_1 = -1e7 - 300;
 		double L_preserve_2 = -1e7 - 1;
-		double loop = 0;
+		double loop = 0; //keeps the track of how big is the candidate haplotype vector (i.e. same as candidates.size())
 		vector<double> all_likelihoods;
 		vector<double> haplotypes;
 		vector<double> freqs_before;
 		vector<double> freqs_after;
-		double BIC_check=2;
-		//You can change the cut-off limit in the log-likelihood improvement that you demand every time the computer adds a new haplotype 
-		//In this case, we demand the improvement to be, at least, 5 log-likelihood units.
+		double BIC_check = 1;
 		while (BIC_check > 0)
 		{
 			loop++;
-			candidates.push_back(unknown);
-			unsigned int hap_size = candidates.size();
+			candidates.push_back(unknown); //every round, we add the 'default' haplotype (...XXXX...) into candidate list and optimise it based on information from short-read data
+			unsigned int candidates_size = candidates.size();
 			L_preserve_1 = L_preserve_2;
 			vector<double> temp_likelihoods;
 			vector<vector<double>> freqs_1;
 			vector<vector<double>> freqs_2;
 			vector<vector<string>> temp_candidates;
 			int candidate_size1 = candidates.size();
-			//The following loop determines how many times the computer makes an attempt to find the optimum haplotypes and their corresponding frequencies.
-			//In this case, the computer makes 20 attempts to optimize candidates.size() haplotypes.
+			//The following loop determines, for a given set of candidate haplotypes, how many attempts we make to optimise the set such that BIC > 0
+			//In the default case, the computer makes 20 attempts to optimize candidates.size() haplotypes.
 			double sacred_check = 0;
-			for (unsigned int sample = 0; sample < 20; sample++)
+			for (unsigned int attempts = 0; attempts < 20; attempts++)
 			{
-				//?could make the condition below better?
-				L_new = L_preserve_2 - 100 / (2*candidate_size1);
+				L_new = L_preserve_2 - 100 / (2*candidate_size1); //try to explore the possible haplotype space locally, i.e. start optimising likelihood from a value close to the previous step of the optimisation with one fewer candidate haplotype
 				L_store = -1e5;
-				candidates[candidate_size1 - 1] = unknown;
+				candidates[candidate_size1 - 1] = unknown; //the most recent haplotype is unknown
 				double candidate_size = candidates.size();
-				double BAD_COUNT = 0;
+				double failure_counts = 0;
 				//This defines the cut-off on when to stop making further attempts to optimize the haplotypes
 				//This depends on loop=number of haplotypes at any time and read_count=total number of partial-reads available.
-				double THRESHOLD = 2 * loop * row_numbers;
-				double attempts = 1;
-				vector<double> init_freqs1;
+				double THRESHOLD = 20 * loop * row_numbers; //depending on how big is the Multi_locus_trajectories.out file and how many haplotypes are already added as potential candidates, the number of attempts to re-shuffling the candidate haplotype set must be adjusted 
 				gsl_rng_env_setup();
 				gsl_rng *rgen = gsl_rng_alloc(gsl_rng_taus);
 				int seed = (int)time(NULL);
 				gsl_rng_set(rgen, seed);
+				vector<double> init_freqs1;//set the initial frequency of candidate haplotypes for the first timepoint to be a randomly distributed number between 0 and 1
 				for (unsigned int i = 0; i < candidates.size() + 1; i++)
 				{
 				
@@ -519,7 +516,7 @@ int main(int argc, char* argv[])
 				NormaliseFreqs(init_freqs1);
 				vector<double> init_freqs1_store = init_freqs1;
 				
-				vector<double> init_freqs2;
+				vector<double> init_freqs2;//set the initial frequency of candidate haplotypes for the second timepoint to be a randomly distributed number between 0 and 1
 				for (unsigned int i = 0; i < candidates.size() + 1; i++)
 				{
 				
@@ -529,7 +526,7 @@ int main(int argc, char* argv[])
 				NormaliseFreqs(init_freqs2);
 				vector<double> init_freqs2_store = init_freqs2;
 				
-				vector<vector<vector<int>>> CONTRIBS;
+				vector<vector<vector<int>>> CONTRIBS; //finds which (if any) candidate haplotype matches with the jth element of the ith partial haplotype set in Multi_locus_trajectories.out (i.e. which haplotypes 'contribute' to the jth partial haplotype of the ith set)
 				for (unsigned int i = 0; i < partitions.size(); i++)
 				{
 					vector<vector<int>> contribs;
@@ -563,7 +560,7 @@ int main(int argc, char* argv[])
 				}
 
 
-				for (unsigned int jjj = 0; jjj < 150; jjj++)
+				for (unsigned int s = 0; s < 150; s++)
 				{
 					double randomX = floor(shuffle_partitions.size()*gsl_rng_uniform(rgen));
 					string replaceX;
@@ -595,7 +592,6 @@ int main(int argc, char* argv[])
 					}
 					string sub_hap = candidates[j].substr(pos[0], pos.size());
 					candidates[j].replace(pos[0], pos.size(), REPLACE);
-					attempts++;
 
 					vector<vector<vector<int>>> CONTRIBS;
 					for (unsigned int i = 0; i < partitions.size(); i++)
@@ -636,10 +632,10 @@ int main(int argc, char* argv[])
 
 					if (L_store > L_new)
 					{
-						//cout << endl << L_store1 << " + " << L_store2 << " = " << L_store << "  " << L_new << endl;
+						cout << endl << L_store1 << " + " << L_store2 << " = " << L_store << "  " << L_new << endl;
 						L_new = L_store;
-						//cout << endl << "---->IMPROVE!" << endl;
-						BAD_COUNT = 1;
+						cout << endl << "---->IMPROVE!" << endl;
+						failure_counts = 1;
 						for (unsigned int i = 0; i < init_freqs1.size(); i++)
 						{
 							init_freqs1_store[i] = init_freqs1[i];
@@ -651,19 +647,19 @@ int main(int argc, char* argv[])
 					}
 					else if (L_store <= L_new)
 					{
-						//cout << endl << L_store1 << " + " << L_store2 << " = " << L_store << "  " << L_new << endl;
+						cout << endl << L_store1 << " + " << L_store2 << " = " << L_store << "  " << L_new << endl;
 						candidates[j].replace(pos[0], pos.size(), sub_hap);
-						//cout << endl << "---->FAIL!" << endl;
-						BAD_COUNT++;
+						cout << endl << "---->FAIL!" << endl;
+						failure_counts++;
 					}
-					if (BAD_COUNT > THRESHOLD || shuffle_partitions.size() == 0)
+					if (failure_counts > THRESHOLD || shuffle_partitions.size() == 0)
 					{
 						break;
 					}
 				}
 				//Uncomment the following if you would like to see the output of every attempt the computer makes to find the optimum set
 
-				/*cout << "sample " << sample << " is: " << L_new << endl;
+				cout << "attempts " << attempts << " is: " << L_new << endl;
 				for (int i = 0; i < init_freqs1.size(); i++)
 				{
 				cout << init_freqs1[i] << "  ";
@@ -678,7 +674,7 @@ int main(int argc, char* argv[])
 				{
 				cout << candidates[i] << "   ";
 				}
-				cout << endl;*/
+				cout << endl;
 				if (loop > 1)
 				{
 					int candidates_check = 0;
@@ -708,7 +704,7 @@ int main(int argc, char* argv[])
 					}
 					else if (candidates_check != candidate_size - 1 && really_bad != 0)
 					{
-						sample = 4;
+						attempts = 4;
 						sacred_check ++;
 					}
 				}
@@ -730,7 +726,7 @@ int main(int argc, char* argv[])
 					max_it = mmm;
 				}
 			}
-			cout << endl << "number of haplotypes = " << hap_size;
+			cout << endl << "number of haplotypes = " << candidates_size;
 			cout << endl;
 			cout << temp_likelihoods[max_it];
 			cout << endl;
@@ -740,7 +736,7 @@ int main(int argc, char* argv[])
 			}
 			all_likelihoods.push_back(temp_likelihoods[max_it]);
 			L_preserve_2 = temp_likelihoods[max_it];
-			BIC_check = -((-2*L_preserve_2)+hap_size*log (TOTAL_N)) + ((-2*L_preserve_1)+(hap_size-1)*log (TOTAL_N));
+			BIC_check = -((-2*L_preserve_2)+candidates_size*log (TOTAL_N)) + ((-2*L_preserve_1)+(candidates_size-1)*log (TOTAL_N));
 			if (BIC_check>0)
 			{
 				ofstream myfile;
