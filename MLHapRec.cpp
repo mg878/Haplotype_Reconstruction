@@ -97,14 +97,14 @@ double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> f
 	}
 	vector<string> candidates = haplotypes;
 	vector<double> q = freq;
-	double ULTIMA_THULE = 0;
-	int SIZE_1 = candidates.size();
+	double ULTIMA_THULE = 0; //This parameter is going to add up the likelihood of the haplotype set for each partial haplotype set
+	int candidates_size = candidates.size();
 	for (unsigned int i = 0; i<CONTRIBS.size(); i++)
 	{
-		vector<double> inf;
-		vector<double> nn;
+		vector<double> inf; //complex quantity
+		vector<double> nn; //complex quantity
 		vector<double> temp = q;
-		temp.erase(remove(temp.begin(), temp.end() - 1, q[SIZE_1]));
+		temp.erase(remove(temp.begin(), temp.end() - 1, q[candidates_size]));//erase the unkknown haplotype qx out of the frequency list 
 		unsigned int check = 0;
 		vector<double> majorCheckvec;
 		double NUM1 = 0;
@@ -117,14 +117,16 @@ double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> f
 			int majorCheck = 0;
 			for (unsigned int k = 0; k<(CONTRIBS[i][j]).size(); k++)
 			{
+				//add the frequency of all the haplotypes that share the same partial haplotype of interest
 				if (!(CONTRIBS[i][j]).empty())
 				{
-					sum += q[(CONTRIBS[i][j][k])];
+					sum += q[(CONTRIBS[i][j][k])];//add the frequency of all haplotypes that contribute to the ith partial haplotype set (CONTRIBS[i][j][k] = ith partial haplotype set, jth element, kth contributing haplotype)
 					majorCheck++;
 					majorCheck1++;
 					majorCheckvec.push_back(q[(CONTRIBS[i][j][k])]);
 				}
 			}
+			//if none of the candidate haplotypes match with the partial haplotype of interest (i.e. do not 'contribute' to that partial haplotype set), the corresponding reads for that partial haplotype goes to the unknown haplotype qx)
 			if ((CONTRIBS[i][j]).empty())
 			{
 				check++;
@@ -133,6 +135,7 @@ double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> f
 				sum_nn += NUM1;
 				vaccum_holder.push_back(NUM1);
 			}
+			//if, at least, there were one candidate haplotype that contributed to the ith partial haplotype set, uptade nn and inf
 			if (majorCheck != 0)
 			{
 				inf.push_back(sum);
@@ -141,12 +144,15 @@ double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> f
 				nn.push_back(NUM);
 			}
 		}
+		//if the candidate haplotypes covered all the partial haplotypes in the ith set, then there are zero reads left to be attributed to qx
 		if (check == 0 && majorCheck1 == temp.size())
 		{
-			inf.push_back(q[SIZE_1]);
+			inf.push_back(q[candidates_size]);
 			nn.push_back(0.0);
 		}
 		unsigned int check2 = 0;
+		
+		//if some (but not all) of the candidate haplotypes covered the entire partial haplotype set i, the remaining candidates would correspond to zero reads (so as the qx haplotype)
 		if (check == 0 && majorCheck1 != temp.size())
 		{
 			for (unsigned int m = 0; m < majorCheckvec.size(); m++)
@@ -160,10 +166,12 @@ double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> f
 			}
 			inf.push_back(temp_sum);
 			nn.push_back(0.0);
-			inf.push_back(q[SIZE_1]);
+			inf.push_back(q[candidates_size]);
 			nn.push_back(0.0);
 			check2++;
 		}
+		
+		//if some (but not all) of the candidate haplotypes did not contribute to the ith set, then they correspond to zero reads and the remaining unidentified partial haplotypes go to qx
 		unsigned int check3 = 0;
 		if (check != 0 && majorCheck1 != temp.size() && majorCheck1 != 0 && check2 == 0)
 		{
@@ -179,10 +187,11 @@ double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> f
 			double total = accumulate(vaccum_holder.begin(), vaccum_holder.end(), 0);
 			inf.push_back(temp_sum);
 			nn.push_back(0.0);
-			inf.push_back(q[SIZE_1]);
+			inf.push_back(q[candidates_size]);
 			nn.push_back(total);
 			check3++;
 		}
+		//if non of the candidate haplotypes contributed to ith set, then they all correspond to zero reads and everything else would be classified as qx
 		if (check != 0 && majorCheck1 != temp.size() && majorCheck1 == 0 && check2 == 0 && check3 == 0)
 		{
 			double temp_sum = 0;
@@ -191,15 +200,16 @@ double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> f
 				temp_sum += temp[g];
 			}
 			double total = accumulate(vaccum_holder.begin(), vaccum_holder.end(), 0);
-			inf.push_back(q[SIZE_1]);
+			inf.push_back(q[candidates_size]);
 			nn.push_back(total);
 			inf.push_back(temp_sum);
 			nn.push_back(0.0);
 		}
 
+		//if all the candidate haplotypes covered some of the partial haplotypes, then all the remaining reads correspond to qx.
 		if (check != 0 && majorCheck1 == temp.size() && check2 == 0 && check3 == 0)
 		{
-			inf.push_back(q[SIZE_1]);
+			inf.push_back(q[candidates_size]);
 			nn.push_back(sum_nn);
 		}
 		ULTIMA_THULE += Likelihood(c, nn, inf);
