@@ -80,7 +80,7 @@ double Likelihood(int c, vector<double> n, vector<double> x)
 
 /*Given a timepoint (0 for the donor and 1 for the recipient), 
 this function finds the likelihood of a set of haplotypes with 
-frequency (freq) and their contribution to the total reads of 
+their frequencies (freq) and their contribution to the reads of 
 a given partial haplotype set (CONTRIBS) with full partitioning 
 of the partial sets (partitions) and inferred noise parameter c*/
 double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> freq, vector<vector<vector<int>>> &CONTRIBS, vector<vector<vector<string>>> &partitions, double c)
@@ -97,12 +97,12 @@ double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> f
 	}
 	vector<string> candidates = haplotypes;
 	vector<double> q = freq;
-	double ULTIMA_THULE = 0; //This parameter is going to add up the likelihood of the haplotype set for each partial haplotype set
+	double ULTIMA_THULE = 0; //For a candidate haplotype set, this parameter calculates the sum of the likelihoods for each of the i partial haplotype sets
 	int candidates_size = candidates.size();
 	for (unsigned int i = 0; i<CONTRIBS.size(); i++)
 	{
-		vector<double> inf; //complex quantity
-		vector<double> nn; //complex quantity
+		vector<double> inf; //contains the sum of the frequencies of all contributing candidate haplotypes for each of the j members of the ith partial haplotype set
+		vector<double> nn; //contains the corresponding total number of reads for each member of inf vector
 		vector<double> temp = q;
 		temp.erase(remove(temp.begin(), temp.end() - 1, q[candidates_size]));//erase the unkknown haplotype qx out of the frequency list 
 		unsigned int check = 0;
@@ -216,4 +216,69 @@ double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> f
 		temp = q;
 	}
 	return ULTIMA_THULE;
+}
+
+//For a candidate haplotype set, this function finds an optimal frequency given the short-read data collected from Multi_locus_trajectories.out file
+double OptimumFreqs(double timepoint, vector<string> &candidates, vector<double> &init_freqs, vector<vector<vector<int>>> &CONTRIBS, vector<vector<vector<string>>> &partitions)
+{
+	gsl_rng_env_setup();
+	gsl_rng *rgen = gsl_rng_alloc(gsl_rng_taus);
+	int seed = (int)time(NULL);
+	gsl_rng_set(rgen, seed);
+	double init_size = init_freqs.size();
+	vector<double> init_freqs_store = init_freqs;
+	double L = -1e7; //initial (extremely low) value for the likelihood
+	unsigned int check = 1;
+	unsigned int max_it = 8e3; //maximum number of attempts for optimising the frequencies
+	double changex = 1e-2; //magnitude of the incremental (random) change in frequency
+	double L_store1 = -1e7; //improved likelihood after frequency optimisation
+
+	for (unsigned int it = 0; it < max_it; it++)
+	{
+		double r = 2 * (gsl_rng_uniform(rgen) - 0.5);//random direction between -1 to +1
+		int j = floor(init_freqs.size()*gsl_rng_uniform(rgen));
+		init_freqs[j] = init_freqs[j] + (r*changex);
+
+		for (unsigned int i = 0; i < init_size; i++)
+		{
+			if (init_freqs[i] < 1e-11)
+			{
+				//changed this from 1e-11 to 0, so maybe change it back if something went wrong
+				init_freqs[i] = 0;
+			}
+		}
+
+		NormaliseFreqs(init_freqs);//frequencies should add up to one after being randomly changed
+		if (init_freqs[init_size - 1] > 1e-2)
+		{
+			init_freqs[init_size - 1] = 1e-2;
+			double TOTAL = 0;
+			for (unsigned int i = 0; i < init_size-1; i++)
+			{
+				TOTAL += init_freqs[i];
+			}
+			for (unsigned int i = 0; i < init_size-1; i++)
+			{
+				init_freqs[i] = init_freqs[i]*(0.99/TOTAL);
+			}
+		}
+		L = Dirichlet_m(timepoint, candidates, init_freqs, CONTRIBS, partitions);
+
+		if (L > L_store1)
+		{
+			L_store1 = L;
+			init_freqs_store = init_freqs;
+			check = 1;
+		}
+		if (L <= L_store1)
+		{
+			init_freqs = init_freqs_store;
+			check++;
+		}
+		if (check >= 50)
+		{
+			break;
+		}
+	}
+	return L_store1;
 }
