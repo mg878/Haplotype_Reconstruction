@@ -42,7 +42,7 @@ void NormaliseFreqs(vector<double> &init_freqs)
 	}
 }
 
-//Calculate the Dirichlet Multinomial given c=noise parameter, n=reads, x=frequencies of haplotypes
+//Calculate the log Dirichlet Multinomial given c=noise parameter, n=reads, x=frequencies of haplotypes
 double Likelihood(int c, vector<double> n, vector<double> x)
 {
 	double sum_1 = 0;
@@ -218,7 +218,7 @@ double Dirichlet_m(double timepoint, vector<string> haplotypes, vector<double> f
 	return ULTIMA_THULE;
 }
 
-//For a candidate haplotype set, this function finds an optimal frequency given the short-read data collected from Multi_locus_trajectories.out file
+//For a candidate haplotype set, this function finds an optimal frequency given the short-read data collected from Multi_locus_trajectories.out file and returns the log-likelihood value for that set
 double OptimumFreqs(double timepoint, vector<string> &candidates, vector<double> &init_freqs, vector<vector<vector<int>>> &CONTRIBS, vector<vector<vector<string>>> &partitions, double c)
 {
 	gsl_rng_env_setup();
@@ -560,7 +560,7 @@ int main(int argc, char* argv[])
 				}
 
 
-				for (unsigned int s = 0; s < 150; s++)
+				for (unsigned int s = 0; s < 50*(Fpositions.size()); s++)//set the 'initial conditions' for the most recent (unknown) candidate haplotype using pieces from the partial haplotype set until there are no undetermined loci (X) left
 				{
 					double randomX = floor(shuffle_partitions.size()*gsl_rng_uniform(rgen));
 					string replaceX;
@@ -575,12 +575,13 @@ int main(int argc, char* argv[])
 					string sub_hapX = candidates[candidate_size - 1].substr(posX[0], posX.size());
 					candidates[candidate_size - 1].replace(posX[0], posX.size(), replaceX);
 				}
-				double L_store1;
-				double L_store2;
+				
+				double L_store1;//maximum likelihood of the candidate haplotypes given the first timepoint (i.e. donor population)
+				double L_store2;//maximum likelihood of the candidate haplotypes given the second timepoint (i.e. recipient population)
 				while (true)
 				{
-					double j = floor(candidates.size()*gsl_rng_uniform(rgen));
-					double random = floor(shuffle_partitions.size()*gsl_rng_uniform(rgen));
+					double j = floor(candidates.size()*gsl_rng_uniform(rgen));//randomly select a candidate haplotype
+					double random = floor(shuffle_partitions.size()*gsl_rng_uniform(rgen));//and replace a randomly selected position(s) with a partial haplotype that could exist at that position
 					string REPLACE;
 					vector<double> pos;
 					double loci_number = atoi((shuffle_partitions[random][0]).c_str());
@@ -593,7 +594,7 @@ int main(int argc, char* argv[])
 					string sub_hap = candidates[j].substr(pos[0], pos.size());
 					candidates[j].replace(pos[0], pos.size(), REPLACE);
 
-					vector<vector<vector<int>>> CONTRIBS;
+					vector<vector<vector<int>>> CONTRIBS; //find the contribution of the candidate set given this change at a randomly selected locus (or loci) of one haplotype
 					for (unsigned int i = 0; i < partitions.size(); i++)
 					{
 						vector<vector<int>> contribs;
@@ -626,15 +627,15 @@ int main(int argc, char* argv[])
 						CONTRIBS.push_back(contribs);
 					}
 
-					L_store1 = OptimumFreqs(0, candidates, init_freqs1, CONTRIBS, partitions, c);
-					L_store2 = OptimumFreqs(1, candidates, init_freqs2, CONTRIBS, partitions, c);
-					L_store = L_store1 + L_store2;
+					L_store1 = OptimumFreqs(0, candidates, init_freqs1, CONTRIBS, partitions, c);//optimise the frequencies of + calculate the log-likelihood of the candidate haplotype set with noise parameter c for the first timepoint (i.e. before transmission in the donor population) 
+					L_store2 = OptimumFreqs(1, candidates, init_freqs2, CONTRIBS, partitions, c);//optimise the frequencies of + calculate the log-likelihood of the candidate haplotype set with noise parameter c for the second timepoint (i.e. after transmission in the recipient population)
+					L_store = L_store1 + L_store2;//the log-likelihood of the first and second timepoint are independent of each other
 
-					if (L_store > L_new)
+					if (L_store > L_new)//if this random change was beneficial (i.e. increased the likelihood of the candidate set)
 					{
-						cout << endl << L_store1 << " + " << L_store2 << " = " << L_store << "  " << L_new << endl;
+						//cout << endl << L_store1 << " + " << L_store2 << " = " << L_store << "  " << L_new << endl;
 						L_new = L_store;
-						cout << endl << "---->IMPROVE!" << endl;
+						//cout << endl << "---->IMPROVE!" << endl;
 						failure_counts = 1;
 						for (unsigned int i = 0; i < init_freqs1.size(); i++)
 						{
@@ -645,36 +646,40 @@ int main(int argc, char* argv[])
 							init_freqs2_store[i] = init_freqs2[i];
 						}
 					}
-					else if (L_store <= L_new)
+					else if (L_store <= L_new)//if it was a bad change, reverse the random change and try again until the failure_counts=THRESHOLD
 					{
-						cout << endl << L_store1 << " + " << L_store2 << " = " << L_store << "  " << L_new << endl;
+						//cout << endl << L_store1 << " + " << L_store2 << " = " << L_store << "  " << L_new << endl;
 						candidates[j].replace(pos[0], pos.size(), sub_hap);
-						cout << endl << "---->FAIL!" << endl;
+						//cout << endl << "---->FAIL!" << endl;
 						failure_counts++;
 					}
-					if (failure_counts > THRESHOLD || shuffle_partitions.size() == 0)
+					if (failure_counts > THRESHOLD || shuffle_partitions.size() == 0)//if we tried 'enough' number of random changes (set by the THRESHOLD) and had no improvement in the likelihood value, it means that we have found the optimal set
 					{
 						break;
 					}
 				}
-				//Uncomment the following if you would like to see the output of every attempt the computer makes to find the optimum set
-
-				cout << "attempts " << attempts << " is: " << L_new << endl;
-				for (int i = 0; i < init_freqs1.size(); i++)
-				{
-				cout << init_freqs1[i] << "  ";
-				}
-				cout << endl;
-				for (int i = 0; i < init_freqs1.size(); i++)
-				{
-				cout << init_freqs2[i] << "  ";
-				}
-				cout << endl << endl;
-				for (int i = 0; i < candidates.size(); i++)
+				
+				
+				//Uncomment the following lines if you like to see the output of each attempt in the optimisation process
+				/*cout << "candidate haplotype(s) is (are):" << endl;
+				for (unsigned int i = 0; i < candidates.size(); i++)
 				{
 				cout << candidates[i] << "   ";
 				}
 				cout << endl;
+				cout << "likelihood found in attempt " << attempts << ": " << L_new << endl;
+				for (unsigned int i = 0; i < init_freqs1.size(); i++)
+				{
+				cout << init_freqs1[i] << "  ";
+				}
+				cout << endl;
+				for (unsigned int i = 0; i < init_freqs1.size(); i++)
+				{
+				cout << init_freqs2[i] << "  ";
+				}
+				cout << endl << endl;*/
+				
+				
 				if (loop > 1)
 				{
 					int candidates_check = 0;
@@ -755,7 +760,7 @@ int main(int argc, char* argv[])
 	
 	else
 	{
-		cout << "No Multi_locus_trajectories.out file found" << endl;
+		cout << "No Multi_locus_trajectories.out file found in " << multi_locus_file << endl;
 		return false;
 	}
 }
