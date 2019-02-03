@@ -288,7 +288,8 @@ int main(int argc, char* argv[])
 {
 	string multi_locus_file = argv[1]; //first input is the Multi_locus_trajectories.out file
 	double c = atoi(argv[2]); //second input is the inferred noise parameter C
-	
+	freopen("update.txt","w",stdout); //print out the progress of the optimisation process in a file called update.txt
+
 	if (FILE *file1 = fopen(multi_locus_file.c_str(), "r")) //check whether the Multi_locus_trajectories.out file exists
 	{
 		fclose(file1);
@@ -732,16 +733,17 @@ int main(int argc, char* argv[])
 				}
 			}
 			
-			cout << "---------------------------------------------------------" << endl;
+			cout << "------------------------------------------------------------------" << endl;
+			cout << "***ROUND " << candidates_size << "***" << endl;
 			cout << "number of haplotypes are currently = " << candidates_size << endl;
-			cout << "maximum likelihood value = " << temp_likelihoods[max_it] << endl << endl;
+			cout << "maximum log-likelihood value = " << temp_likelihoods[max_it] << endl << endl;
 			cout << "below is the current list of candidate haplotypes:" << endl;
 			cout << "<optimised haplotype> | <donor frequency> | <recipient frequency> | " << endl;
 			for (unsigned int i = 0; i < temp_candidates[max_it].size(); i++)
 			{
 				cout << temp_candidates[max_it][i] << '\t' << freqs_1[max_it][i] << '\t' << freqs_2[max_it][i] << endl;
 			}
-			cout << "---------------------------------------------------------" << endl;
+			cout << "------------------------------------------------------------------" << endl;
 			
 			all_likelihoods.push_back(temp_likelihoods[max_it]);
 			L_preserve_2 = temp_likelihoods[max_it];
@@ -750,12 +752,45 @@ int main(int argc, char* argv[])
 			if (BIC_check > 0) // if Delta_BIC > 0 --> the current set of N haplotypes are better than the N-1 haplotypes in the previous step
 			{
 				ofstream myfile;
-				myfile.open("outcome_1.txt");
+				myfile.open("raw_haplotypes.txt");
 				for (unsigned int i = 0; i < temp_candidates[max_it].size(); i++)
 				{
 					myfile << i + 1 << "\t" << temp_candidates[max_it][i] << "\t" << freqs_1[max_it][i] << "\t" << freqs_2[max_it][i] << endl;
 				}
 				myfile.close();
+				
+				for (unsigned int i = 0; i < temp_candidates[max_it].size(); i++)
+				{
+					if (freqs_1[max_it][i] < 1e-7)
+					{
+						freqs_1[max_it][i] = 0;
+					}
+					if (freqs_2[max_it][i] < 1e-7)
+					{
+						freqs_2[max_it][i] = 0;
+					}
+				}
+				
+				ofstream myfile2;
+				myfile2.open("outcome_1.txt");
+				for (unsigned int i = 0; i < temp_candidates[max_it].size(); i++)
+				{
+					if (freqs_1[max_it][i] == 0 && freqs_2[max_it][i] > 0)
+					{
+						//This is a mutation!
+					}
+					if (freqs_1[max_it][i] != 0 && freqs_1[max_it][i] != freqs_2[max_it][i])
+					{
+						myfile2 << i + 1 << "\t" << temp_candidates[max_it][i] << "\t" << freqs_1[max_it][i] << "\t" << freqs_2[max_it][i] << endl;
+					}
+				}
+				myfile2.close();
+			}
+			
+			if (BIC_check < 0)
+			{
+				cout << "The optimisation process stops here." << endl;
+				cout << "The BIC in ROUND " << candidates_size << " is negative" << endl;
 			}
 		}
 		
