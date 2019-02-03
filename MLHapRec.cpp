@@ -491,7 +491,6 @@ int main(int argc, char* argv[])
 			int candidate_size1 = candidates.size();
 			//The following loop determines, for a given set of candidate haplotypes, how many attempts we make to optimise the set such that BIC > 0
 			//In the default case, the computer makes 20 attempts to optimize candidates.size() haplotypes.
-			double sacred_check = 0;
 			for (unsigned int attempts = 0; attempts < 20; attempts++)
 			{
 				L_new = L_preserve_2 - 100 / (2*candidate_size1); //try to explore the possible haplotype space locally, i.e. start optimising likelihood from a value close to the previous step of the optimisation with one fewer candidate haplotype
@@ -653,7 +652,7 @@ int main(int argc, char* argv[])
 						//cout << endl << "---->FAIL!" << endl;
 						failure_counts++;
 					}
-					if (failure_counts > THRESHOLD || shuffle_partitions.size() == 0)//if we tried 'enough' number of random changes (set by the THRESHOLD) and had no improvement in the likelihood value, it means that we have found the optimal set
+					if (failure_counts > THRESHOLD || shuffle_partitions.size() == 0)//if we tried 'enough' number of random changes (set by the THRESHOLD) and no improvement in the likelihood value was gained, it means that we have found the optimal set
 					{
 						break;
 					}
@@ -683,37 +682,36 @@ int main(int argc, char* argv[])
 				if (loop > 1)
 				{
 					int candidates_check = 0;
-					for (unsigned int kappa = 0; kappa < candidate_size - 1; kappa++)
+					for (unsigned int i = 0; i < candidate_size - 1; i++)
 					{	
-						if (candidates[candidate_size-1] != candidates[kappa])
+						if (candidates[candidate_size-1] != candidates[i]) // check to see if the most recently added haplotype is a new haplotype (i.e. not a repeated haplotype that already exists in the candidates list)
 						{
-							candidates_check++;
+							candidates_check++; //if there are no repeats, this should be the same as the total number of haplotypes - 1
 						}
 					}
 					
 					int really_bad = 0;
-					for (unsigned int kappa = 0; kappa < candidate_size; kappa++)
+					for (unsigned int i = 0; i < candidate_size; i++) //if the frequency of any haplotype is effectively zero before and after the transmission, then it is really not a good candidate and the code has got stuck in a local maximum
 					{	
-						if (init_freqs1_store[kappa] < 1e-9 && init_freqs2_store[kappa] < 1e-9)
+						if (init_freqs1_store[i] < 1e-9 && init_freqs2_store[i] < 1e-9)
 						{
 							really_bad++;
 						}
 					}
 					
-					if (candidates_check == candidate_size - 1 && really_bad == 0)
+					if (candidates_check == candidate_size - 1 && really_bad == 0)//if there is no duplicate haplotype and their frequencies BOTH before and after tranmission is above 10^-9, optimisation is normal
 					{
 						temp_likelihoods.push_back(L_new);
 						freqs_1.push_back(init_freqs1_store);
 						freqs_2.push_back(init_freqs2_store);
 						temp_candidates.push_back(candidates);
 					}
-					else if (candidates_check != candidate_size - 1 && really_bad != 0)
+					else if (candidates_check != candidate_size - 1 && really_bad != 0)//otherwise, make another attempt to find a better set of haplotypes
 					{
-						attempts = 4;
-						sacred_check ++;
+						attempts = attempts - 1;
 					}
 				}
-				else if (loop == 1)
+				else if (loop == 1) //this is the first haplotype so it is fine.
 				{
 					temp_likelihoods.push_back(L_new);
 					freqs_1.push_back(init_freqs1_store);
@@ -721,28 +719,35 @@ int main(int argc, char* argv[])
 					temp_candidates.push_back(candidates);
 				}
 			}
+			
+			//find which of the 20 attempts had the highest likelihood value
 			double max = temp_likelihoods[0];
 			double max_it = 0;
-			for (unsigned int mmm = 1; mmm < temp_likelihoods.size(); mmm++)
+			for (unsigned int ml = 1; ml < temp_likelihoods.size(); ml++)
 			{
-				if (temp_likelihoods[mmm] > max)
+				if (temp_likelihoods[ml] > max)
 				{
-					max = temp_likelihoods[mmm];
-					max_it = mmm;
+					max = temp_likelihoods[ml];
+					max_it = ml;
 				}
 			}
-			cout << endl << "number of haplotypes = " << candidates_size;
-			cout << endl;
-			cout << temp_likelihoods[max_it];
-			cout << endl;
+			
+			cout << "---------------------------------------------------------" << endl;
+			cout << "number of haplotypes are currently = " << candidates_size << endl;
+			cout << "maximum likelihood value = " << temp_likelihoods[max_it] << endl << endl;
+			cout << "below is the current list of candidate haplotypes:" << endl;
+			cout << "<optimised haplotype> | <donor frequency> | <recipient frequency> | " << endl;
 			for (unsigned int i = 0; i < temp_candidates[max_it].size(); i++)
 			{
 				cout << temp_candidates[max_it][i] << '\t' << freqs_1[max_it][i] << '\t' << freqs_2[max_it][i] << endl;
 			}
+			cout << "---------------------------------------------------------" << endl;
+			
 			all_likelihoods.push_back(temp_likelihoods[max_it]);
 			L_preserve_2 = temp_likelihoods[max_it];
+			//the following line calculates the difference between the BIC of the current step and one step before; BIC = -2log(L) + klog(n)
 			BIC_check = -((-2*L_preserve_2)+candidates_size*log (TOTAL_N)) + ((-2*L_preserve_1)+(candidates_size-1)*log (TOTAL_N));
-			if (BIC_check>0)
+			if (BIC_check > 0) // if Delta_BIC > 0 --> the current set of N haplotypes are better than the N-1 haplotypes in the previous step
 			{
 				ofstream myfile;
 				myfile.open("outcome_1.txt");
@@ -751,7 +756,6 @@ int main(int argc, char* argv[])
 					myfile << i + 1 << "\t" << temp_candidates[max_it][i] << "\t" << freqs_1[max_it][i] << "\t" << freqs_2[max_it][i] << endl;
 				}
 				myfile.close();
-
 			}
 		}
 		
