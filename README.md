@@ -1,14 +1,18 @@
 # A Novel Haplotype Reconstruction Method (MLHapRec)
-`MLHapRec` is a maximum likelihood approach for haplotype reconstruction which uses the `[SAMFIER]`(https://github.com/cjri/samfire/blob/master/README.md) multi-locus variant calling technique for processing short-read data where samples are collected during a transmission of a virus (like influenza) from a donor to a recipient population. 
+`MLHapRec` is a maximum likelihood approach for haplotype reconstruction which uses the [SAMFIER](https://github.com/cjri/samfire/blob/master/README.md) multi-locus variant calling technique for processing short-read data where samples are collected during a transmission of a virus (like influenza) from a donor and a recipient population (i.e. two time points). 
 
-This code is originally developed for estimating the transmission bottleneck size of flu, but can be used for any other set of short-read data. 
+This code is originally developed for estimating the transmission bottleneck size of flu, but can be used for any other set of short-read data for the purpose of constructing the underlying (unkonw) haplotypes. 
 
-## Data Format
-This code requires Multi_locus_trajectories.out file from SAMFIER.
-Below, we will discuss a scenario where we have 100 transmission events for flu virus collected from two time-points (1 before and 1 after transmission). 
+## Requirements
+This code requires `Multi_locus_trajectories.out` file and an inferred noise parameter `C` from `SAMFIER`.
 
-## How to Compile
+## Usage
+Given that you have inferred the noise parameter, e.g. C = 660, you can run the code by typing:
+> ./run_MLHapRec /path/to/directory/Multi_locus_trajectories.out 660
 
-1- **open** blah
-- `print("Hello")` 
-- hi  
+## Output
+Running the code, typically, takes anywhere from 10sec to 10h depending on the size of `Multi_locus_trajectories.out` -- If there are about 10 partial haplotypes, it can take up to ~15min for the full haplotype reconstruction.
+After a successful execution, `MLHapRec` generates three files: 
+- dwd
+- sad
+- sdsa
