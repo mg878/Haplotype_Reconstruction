@@ -752,7 +752,7 @@ int main(int argc, char* argv[])
 			if (BIC_check > 0) // if Delta_BIC > 0 --> the current set of N haplotypes are better than the N-1 haplotypes in the previous step
 			{
 				ofstream myfile;
-				myfile.open("raw_haplotypes.txt");
+				myfile.open("raw_haplotypes.txt"); //includes all the reconstructed haplotypes and their corresponding frequencies before (in the donor) and after (in the recipient) transmission
 				for (unsigned int i = 0; i < temp_candidates[max_it].size(); i++)
 				{
 					myfile << i + 1 << "\t" << temp_candidates[max_it][i] << "\t" << freqs_1[max_it][i] << "\t" << freqs_2[max_it][i] << endl;
@@ -772,7 +772,7 @@ int main(int argc, char* argv[])
 				}
 				
 				ofstream myfile2;
-				myfile2.open("outcome_1.txt");
+				myfile2.open("outcome_1.txt"); //haplotypes which have not acquire a mutation once established in the recipient
 				for (unsigned int i = 0; i < temp_candidates[max_it].size(); i++)
 				{
 					if (freqs_1[max_it][i] == 0 && freqs_2[max_it][i] > 0)
