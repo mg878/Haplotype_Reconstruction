@@ -1,0 +1,71 @@
+------------------------------------------------------------------
+***ROUND 1***
+number of haplotypes are currently = 1
+maximum log-likelihood value = -629.143
+
+below is the current list of candidate haplotypes:
+<optimised haplotype> | <donor frequency> | <recipient frequency> | 
+ATA	0.99	0.998393
+------------------------------------------------------------------
+------------------------------------------------------------------
+***ROUND 2***
+number of haplotypes are currently = 2
+maximum log-likelihood value = -225.61
+
+below is the current list of candidate haplotypes:
+<optimised haplotype> | <donor frequency> | <recipient frequency> | 
+ATA	0.683839	0.998393
+TTA	0.306161	9.99005e-12
+------------------------------------------------------------------
+------------------------------------------------------------------
+***ROUND 3***
+number of haplotypes are currently = 3
+maximum log-likelihood value = -122.62
+
+below is the current list of candidate haplotypes:
+<optimised haplotype> | <donor frequency> | <recipient frequency> | 
+ATA	0.653779	0.999281
+TTA	0.241923	1e-11
+TCA	0.103229	0.000207889
+------------------------------------------------------------------
+------------------------------------------------------------------
+***ROUND 4***
+number of haplotypes are currently = 4
+maximum log-likelihood value = -97.9151
+
+below is the current list of candidate haplotypes:
+<optimised haplotype> | <donor frequency> | <recipient frequency> | 
+ATA	0.629806	0.998955
+TCA	0.0848163	1e-11
+TTA	0.248237	1e-11
+ACA	0.0367655	0.000535071
+------------------------------------------------------------------
+------------------------------------------------------------------
+***ROUND 5***
+number of haplotypes are currently = 5
+maximum log-likelihood value = -74.8403
+
+below is the current list of candidate haplotypes:
+<optimised haplotype> | <donor frequency> | <recipient frequency> | 
+TTA	0.248341	1.00152e-11
+TCA	0.0850667	1.00152e-11
+ACA	0.0365978	0.000532035
+ATA	0.628445	0.95978
+ATG	0.00143428	0.0394233
+------------------------------------------------------------------
+------------------------------------------------------------------
+***ROUND 6***
+number of haplotypes are currently = 6
+maximum log-likelihood value = -74.8408
+
+below is the current list of candidate haplotypes:
+<optimised haplotype> | <donor frequency> | <recipient frequency> | 
+TTA	0.247331	9.99811e-12
+TCA	0.0848588	9.99811e-12
+TTG	0.000941641	9.99811e-12
+ACA	0.0368259	0.000515034
+ATA	0.629432	0.959737
+ATG	0.000491415	0.0394872
+------------------------------------------------------------------
+The optimisation process stops here.
+The BIC in ROUND 6 is negative
