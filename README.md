@@ -13,6 +13,8 @@ Given that you have inferred the noise parameter, e.g. C = 660, you can run the 
 ## Output
 Running the code, typically, takes anywhere from 10sec to 10h depending on the size of `Multi_locus_trajectories.out` -- If there are about 10 partial haplotypes, it can take up to ~15min for the full haplotype reconstruction.
 After a successful execution, `MLHapRec` generates three files: 
-- dwd
-- sad
-- sdsa
+- `update.txt` shows how the optimisation process takes place at every round as a new haplotype is added to the list of inferred haplotypes 
+- `raw_haplotypes.txt` lists all the reconstructed haplotypes with their frequencies before and after transmission.
+- `outcome_1.txt` lists the haplotypes from `raw_haplotypes.txt` which have not acquired a mutation once established in the recipient.
+
+##
