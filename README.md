@@ -1,10 +1,10 @@
 # A Novel Haplotype Reconstruction Method (MLHapRec)
-`MLHapRec` is a maximum likelihood approach for haplotype reconstruction which uses the [SAMFIER](https://github.com/cjri/samfire/blob/master/README.md) multi-locus variant calling technique for processing short-read data where samples are collected during a transmission of a virus (like influenza) from a donor and a recipient population (i.e. two time points). 
+`MLHapRec` is a maximum likelihood approach for haplotype reconstruction which uses the [SAMFIRE](https://github.com/cjri/samfire/blob/master/README.md) multi-locus variant calling technique for processing short-read data where samples are collected during a transmission of a virus (like influenza) from a donor and a recipient population (i.e. two time points). 
 
 This code is originally developed for estimating the transmission bottleneck size of flu, but can be used for any other set of short-read data for the purpose of constructing the underlying (unkonw) haplotypes. 
 
 ## Requirements
-This code requires `Multi_locus_trajectories.out` file and an inferred noise parameter `C` from `SAMFIER`.
+This code requires `Multi_locus_trajectories.out` file and an inferred noise parameter `C` from `SAMFIRE`.
 
 ## Usage
 Given that you have inferred the noise parameter, e.g. C = 660, you can run the code by typing:
