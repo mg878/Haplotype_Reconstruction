@@ -22,4 +22,4 @@ After a successful execution, `MLHapRec` generates the following **three** files
 - `update.txt` shows how the optimisation process takes place at every round as a new haplotype is added to the list of inferred haplotypes 
 - `raw_haplotypes.txt` lists all the reconstructed haplotypes with their frequencies before and after transmission.
 - `outcome_1.txt` lists the haplotypes from `raw_haplotypes.txt` which have not acquired a mutation once established in the recipient -- a mutation is defined to be a haplotype with frequency <1e-7 in the donor and >1e-7 in the recipient.
-Note that in the case of no mutation, `raw_haplotypes.txt` and `outcome_1.txt` are identical.
+Note that in the case of no mutation, `raw_haplotypes.txt` and `outcome_1.txt` are essentially identical with a slight difference in that in `outcome_1.txt`, we set all the frequencies below 1e-7 in `raw_haplotypes.txt` to zero.
