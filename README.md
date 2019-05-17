@@ -9,6 +9,7 @@ This code requires a `Multi_locus_trajectories.out` file and an inferred noise p
 ## Usage
 Given that you have inferred the noise parameter, e.g. C = 660, you can run the code by typing:
 > ./run_MLHapRec /path/to/directory/Multi_locus_trajectories.out 660 123
+
 where we used a seed value = 123.
 
 ## Output
