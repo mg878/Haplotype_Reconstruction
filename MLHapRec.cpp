@@ -274,12 +274,27 @@ double OptimumFreqs(double timepoint, vector<string> &candidates, vector<double>
 	return L_store1;
 }
 
+bool fileExists (string& fileName) 
+{
+	ifstream f(fileName.c_str());
+	if (f.good()) 
+	{
+		f.close();
+		return true;
+	}
+	else 
+	{
+		f.close();
+		return false;
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	//first check if the input format is right
 	if(argc < 5 || argc > 5) { 
 		cout << "Error in the input format: " << endl << "Please provide Multi_locus_trajectories.out file and noise parameter C" << endl;
-		cout << "If you do not wish to provide a seed number or number of attempts, put 0 after inputting your file and noise parameter accordingly.";
+		cout << "If you do not wish to provide a seed number or number of attempts, put 0 (or two 0s separated by a space if you do not wish to provide either) after inputting your file and noise parameter accordingly.";
 		return false;
 	}
 	
@@ -328,9 +343,8 @@ int main(int argc, char* argv[])
 	gsl_rng_set(rgen, seed); // this is the seed provided by the used. If no seed is provided, then seed=1 is used.
 	
 	freopen("update.txt","w",stdout); //print out the progress of the optimisation process in a file called update.txt
-	if (FILE *file1 = fopen(multi_locus_file.c_str(), "r")) //check whether the Multi_locus_trajectories.out file exists
+	if (fileExists(multi_locus_file) == true) //check whether the Multi_locus_trajectories.out file exists
 	{
-		fclose(file1);
 		vector<string> table;
 		ifstream reads;
 		reads.open(multi_locus_file);
